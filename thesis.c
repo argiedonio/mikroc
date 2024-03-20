@@ -41,7 +41,7 @@ sbit UART1_Tx_Direction at TRISC6_bit;
 #define ECHO_DWN    PORTA.F1
 #define TRIGGER_Nutr PORTA.F2
 #define ECHO_Nutr   PORTA.F3
-#define pH_level_pin PORTA.F4
+#define pH_level_pin PORTD.RE1
 
 #define PB   PORTC.F0
 
@@ -56,6 +56,9 @@ sbit UART1_Tx_Direction at TRISC6_bit;
 
 // Motor pump
 #define motor_pump PORTD.F1
+
+//electric fan
+#define electric_fan PORTA.F4
 
 // Variables for CONTAINERS
 int time_RW, distance_RW, distance_RWF;
@@ -138,11 +141,12 @@ void display(int x){
    }
 }
 
-// Open/close of containers
+// refilling and supplementing reservoir
 void controller() {
   // Making sure Res is always full
   if (distance_Res < 30){
     // Shifting happens here
+    motor_pump = 0;
     if (distance_RW > 50){
         valve_RW = 1;
         valve_DW = 0;
@@ -157,8 +161,7 @@ void controller() {
   } else{
      valve_RW = 0;
      valve_DW = 0;
-
-     motor_pump = 0;
+     motor_pump = 0; // off the motor before dosing
 
      // check ph sensor
      if (ph_value <= 5.5){
@@ -173,13 +176,29 @@ void controller() {
         pH_DWN_pump = 0;
      }
 
-
     //check tds sensor
     if(tds_value < 750){
         nutr_pump = 1;
     }else{
         nutr_pump = 0;
     }
+
+    //turn on the motor pump to the plant bed if everything is neutralized
+    if (ph_value >= 5.5 && ph_value <= 6.5 && tds_value > 750){
+        pH_UP_pump = 0;
+        pH_DWN_pump = 0;
+        nutr_pump = 0;
+        Delay_ms(1000); // let the solutions mixed for a moment //adjust ta lang
+        motor_pump = 1;
+    }
+  }
+
+  //check if need si e-fan e turn on
+
+  if (temperature_value > 25){
+    electric_fan = 1;
+  }else{
+    electric_fan = 0;
   }
 
 
@@ -292,9 +311,9 @@ void temperature_reading() {
 }
 
 void pH_reading() {
-    read_ph_value = ADC_Read(6);
+    read_ph_value = ADC_Read(pH_level_pin);
     voltage_ph = read_ph_value * 0.0048828;
-    ph_value = 7+((2.5 - voltage_ph )/ 0.1841);
+    ph_value = -13 +((2.5 - voltage_ph )/ 0.1841);
 }
 
 void tds_reading() {
@@ -345,16 +364,19 @@ void main() {
     TRISC.F2 = 0;
     TRISC.F4 = 0;
     TRISC.F5 = 0;
+
+    TRISD.F0 = 0;
+    TRISD.F1 = 0;
+    TRISD.RE0 = 1;
+    TRISD.RE1 = 1;
+    
+    TRISA.F4 = 0; // electric fan
      
     UART1_Init(9600);
 
     T1CON = 0x10;
     ADCON1 = 0x0E;
-    
-    TRISD.F0 = 0;
-    TRISD.F1 = 0;
-    TRISD.RE0 = 1;
-    TRISD.RE1 = 1;
+
 
 
     ADC_Init();
@@ -371,6 +393,15 @@ void main() {
 
     PB = 1;
     num = 0;
+
+    //turn off all valves and pumps before starting
+    electric_fan = 0;
+    valve_RW = 0;
+    valve_DW = 0;
+    pH_UP_pump = 0;
+    pH_DWN_pump = 0;
+    nutr_pump = 0;
+    motor_pump = 0;
 
     while(1){
         waterlevel_RW();
