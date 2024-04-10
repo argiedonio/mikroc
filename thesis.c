@@ -26,7 +26,7 @@ sbit UART1_Rx_Direction at TRISC7_bit;
 sbit UART1_Tx_Direction at TRISC6_bit;
 // End UART module connections
 
-// Define trigger and echo pins for CONTAINERS  
+// Define trigger and echo pins for CONTAINERS
 #define TRIGGER_RW PORTB.F0
 #define ECHO_RW    PORTB.F1
 #define TRIGGER_DW PORTB.F2
@@ -323,12 +323,12 @@ void tds_reading() {
 }
 
 void uart_transmission(int a, int b, int c, int d, int e, int f, float g, float h){
-    char a1[5], b1[5],c1[5], d1[5],e1[5], f1[5],g1[6], h1[6];  
-    IntToStr(a, a1); 
+    char a1[5], b1[5],c1[5], d1[5],e1[5], f1[5],g1[6], h1[6];
+    IntToStr(a, a1);
     IntToStr(b, b1);
     IntToStr(c, c1);
     IntToStr(d, d1);
-    IntToStr(e, e1); 
+    IntToStr(e, e1);
     IntToStr(f, f1);
     FloatToStr(g, g1);
     FloatToStr(h, h1);
@@ -367,11 +367,11 @@ void main() {
 
     TRISD.F0 = 0;
     TRISD.F1 = 0;
-    TRISD.RE0 = 1;
-    TRISD.RE1 = 1;
-    
+    TRISE.F0 = 1;
+    TRISE.F1 = 1;
+
     TRISA.F4 = 0; // electric fan
-     
+
     UART1_Init(9600);
 
     T1CON = 0x10;
@@ -386,7 +386,7 @@ void main() {
     Lcd_Out(1, 6, "System");
     Delay_ms(100);
     Lcd_Out(2, 4, "Starting...");
-    Delay_ms(2000);
+    Delay_ms(200);
     Lcd_Cmd(_LCD_CURSOR_OFF);
     lcd_cmd(_lcd_clear);
 
